@@ -38,32 +38,32 @@ def _env_float(name: str, default: float) -> float:
         raise ValueError(f"Environment variable {name}={raw!r} is not a float") from exc
 
 
-USERNAME: Final[str] = _env("GH_PROFILE_USER", "AVIVASHISHTA29")
-DISPLAY_NAME: Final[str] = _env("GH_PROFILE_DISPLAY_NAME", "Avi Vashishta")
-PROMPT_HOST: Final[str] = _env("GH_PROFILE_PROMPT", "avi@github")
+USERNAME: Final[str] = _env("GH_PROFILE_USER", "AVTAVANTTOUT2")
+DISPLAY_NAME: Final[str] = _env("GH_PROFILE_DISPLAY_NAME", "Avity")
+PROMPT_HOST: Final[str] = _env("GH_PROFILE_PROMPT", "avity@github")
 HTTP_TIMEOUT_SECONDS: Final[float] = _env_float("GH_HTTP_TIMEOUT", 30.0)
 HTTP_USER_AGENT: Final[str] = _env(
     "GH_HTTP_USER_AGENT",
-    "profile-readme-bot/1.0 (+https://github.com/AVIVASHISHTA29/AVIVASHISHTA29)",
+    "profile-readme-bot/1.0 (+https://github.com/AVTAVANTTOUT2/AVTAVANTTOUT2)",
 )
 STATIC: Final[bool] = _env_bool("STATIC", False)
 
 # Info-card content (neofetch-style story lines).
 INFO_ROLE: Final[str] = _env(
     "GH_INFO_ROLE",
-    "Fullstack Developer · AI Builder · Instructor",
+    "Developer · Builder · Student @ EPSI Lille",
 )
 INFO_PREV: Final[str] = _env(
     "GH_INFO_PREV",
-    "Shipped products, taught builders, open-sourced tooling",
+    "Peer-learning platforms, APIs, Android TV apps",
 )
 INFO_STACK: Final[str] = _env(
     "GH_INFO_STACK",
-    "TypeScript · Python · React · Node · AI/LLM",
+    "PHP · Python · TypeScript · C# · Kotlin · Dart",
 )
 INFO_HIGHLIGHTS: Final[str] = _env(
     "GH_INFO_HIGHLIGHTS",
-    "Animated SVG profile · Self-hosted art · No third-party stats",
+    "AvityOS · JarvisAPI · Epsilon · Achievement CLI",
 )
-INFO_LOCATION: Final[str] = _env("GH_INFO_LOCATION", "Building on the internet")
+INFO_LOCATION: Final[str] = _env("GH_INFO_LOCATION", "Lille, France")
 INFO_UPTIME: Final[str] = _env("GH_INFO_UPTIME", "always shipping")

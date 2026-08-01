@@ -34,24 +34,31 @@ CLAHE_TILE = int(os.environ.get("PREP_CLAHE_TILE", "8"))
 SCALE_ALPHA = float(os.environ.get("PREP_SCALE_ALPHA", "1.05"))
 SCALE_BETA = float(os.environ.get("PREP_SCALE_BETA", "18"))
 MASK_BLUR_SIGMA = float(os.environ.get("PREP_MASK_BLUR", "1.0"))
+# portrait | logo | auto  (auto picks logo when the image is mostly bright)
+PREP_MODE = os.environ.get("PREP_MODE", "auto").strip().lower()
+LOGO_BRIGHT_MEAN = float(os.environ.get("PREP_LOGO_BRIGHT_MEAN", "180"))
 
 
 class PhotoPrepError(Exception):
     """Raised when photo preparation fails at a system boundary."""
 
 
-def prep_photo(input_path: Path, output_path: Path) -> tuple[int, int]:
-    """Prepare ``input_path`` and write a grayscale PNG to ``output_path``.
+def _prep_logo(input_path: Path) -> np.ndarray:
+    """High-contrast grayscale prep for bright logos / GitHub avatars."""
+    from PIL import ImageEnhance, ImageOps
 
-    Returns:
-        The ``(width, height)`` of the written image.
+    try:
+        gray = Image.open(input_path).convert("L")
+    except OSError as exc:
+        raise PhotoPrepError(f"Unable to open photo {input_path}: {exc}") from exc
+    gray = ImageOps.autocontrast(gray)
+    gray = ImageEnhance.Contrast(gray).enhance(1.8)
+    gray = ImageEnhance.Sharpness(gray).enhance(1.5)
+    return np.array(gray, dtype=np.uint8)
 
-    Raises:
-        PhotoPrepError: If the input is missing or unreadable.
-    """
-    if not input_path.is_file():
-        raise PhotoPrepError(f"Input photo not found: {input_path}")
 
+def _prep_portrait(input_path: Path) -> np.ndarray:
+    """Subject cutout + CLAHE prep for photographic portraits."""
     try:
         import cv2
         from rembg import remove
@@ -82,12 +89,41 @@ def prep_photo(input_path: Path, output_path: Path) -> tuple[int, int]:
     mask = alpha.astype(np.float32) / 255.0
     mask = cv2.GaussianBlur(mask, (0, 0), MASK_BLUR_SIGMA)
     out = gray.astype(np.float32) * mask + 255.0 * (1.0 - mask)
-    out = np.clip(out, 0, 255).astype(np.uint8)
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def _resolve_mode(input_path: Path) -> str:
+    """Choose portrait vs logo mode."""
+    if PREP_MODE in {"portrait", "logo"}:
+        return PREP_MODE
+    try:
+        mean = float(np.array(Image.open(input_path).convert("L")).mean())
+    except OSError as exc:
+        raise PhotoPrepError(f"Unable to open photo {input_path}: {exc}") from exc
+    mode = "logo" if mean >= LOGO_BRIGHT_MEAN else "portrait"
+    LOGGER.info("Auto prep mode=%s (mean luminance=%.1f)", mode, mean)
+    return mode
+
+
+def prep_photo(input_path: Path, output_path: Path) -> tuple[int, int]:
+    """Prepare ``input_path`` and write a grayscale PNG to ``output_path``.
+
+    Returns:
+        The ``(width, height)`` of the written image.
+
+    Raises:
+        PhotoPrepError: If the input is missing or unreadable.
+    """
+    if not input_path.is_file():
+        raise PhotoPrepError(f"Input photo not found: {input_path}")
+
+    mode = _resolve_mode(input_path)
+    out = _prep_logo(input_path) if mode == "logo" else _prep_portrait(input_path)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(out, mode="L").save(output_path)
     height, width = out.shape
-    LOGGER.info("Wrote %s (%dx%d)", output_path, width, height)
+    LOGGER.info("Wrote %s (%dx%d) mode=%s", output_path, width, height, mode)
     return width, height
 
 
